@@ -28,6 +28,8 @@ $csrfToken = gerarCsrfToken();
   <?php endif; ?>
 </main>
 
+<div style="text-align:center; padding: 24px 0; color: var(--dourado);">S</div>
+
 <script>
   window.MECANISMO_DP = {
     csrfToken: <?= json_encode($csrfToken) ?>,
