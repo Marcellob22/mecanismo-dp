@@ -16,6 +16,10 @@ $csrfToken = gerarCsrfToken();
 <?php include __DIR__ . '/includes/sidebar.php'; ?>
 
 <main class="container container-larga pagina-inicio">
+  <header class="marcas">
+    <img src="assets/img/logo.jpg" alt="Mecanismo DP, gestão de departamento pessoal" class="marca-mecanismo">
+    <img src="assets/img/pretorian.png" alt="Pretorian, gestão de alta performance e contabilidade" class="marca-pretorian">
+  </header>
   <div id="app-inicio"><p class="texto-fraco">Carregando...</p></div>
 </main>
 

@@ -310,7 +310,10 @@ a { color: inherit; }
 .time-linha:last-child { border-bottom: none; }
 
 /* ---------- Página inicial ---------- */
-.pagina-inicio { padding-top: 28px; }
+.pagina-inicio { padding-top: 20px; }
+.marcas { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 26px; }
+.marcas img { height: 62px; width: auto; max-width: 48%; object-fit: contain; border-radius: 8px; display: block; }
+@media (max-width: 600px) { .marcas { padding-left: 52px; } .marcas img { height: 40px; } }
 
 .inicio-topo { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-bottom: 26px; }
 .dia-destaque { display: flex; align-items: center; gap: 18px; }
