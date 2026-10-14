@@ -441,3 +441,17 @@ a { color: inherit; }
 .item-lista.feita-cal .titulo-cal { text-decoration: line-through; opacity: .5; }
 
 .erro-msg:empty { display: none; }
+
+/* ---------- Opções ---------- */
+.opcoes-card { max-width: 460px; }
+.opcoes-card h2 { margin: 0 0 16px; font-size: 20px; font-weight: 400; color: var(--texto); }
+.opcoes-campo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; font-size: 13px; color: rgba(255,255,255,.7); }
+.opcoes-campo input {
+  background: var(--preto); border: 1px solid var(--borda); border-radius: 8px; color: var(--texto);
+  padding: 11px 12px; font-size: 15px; font-family: inherit;
+}
+.opcoes-campo input:focus { outline: none; border-color: var(--dourado); }
+.opcoes-mostrar { display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(255,255,255,.6); margin-bottom: 14px; cursor: pointer; }
+.opcoes-msg { min-height: 20px; margin: 0 0 12px; font-size: 13px; }
+.opcoes-msg.ok { color: #6fd08c; }
+.opcoes-msg.erro { color: #ff7b7b; }
