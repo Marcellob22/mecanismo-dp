@@ -112,6 +112,22 @@ a { color: inherit; }
   padding: 10px 12px; border-radius: 4px; color: rgba(255,255,255,.7); text-decoration: none; font-size: 14px;
 }
 .sidebar-nav a:hover { background: rgba(201,162,39,.1); color: var(--dourado); }
+.sidebar-nav a.ativo { color: var(--dourado-claro); background: rgba(201,162,39,.14); }
+
+.nav-grupo summary {
+  list-style: none; cursor: pointer; padding: 10px 12px; border-radius: 4px; font-size: 14px; color: rgba(255,255,255,.7);
+  display: flex; align-items: center; justify-content: space-between; user-select: none;
+}
+.nav-grupo summary::-webkit-details-marker { display: none; }
+.nav-grupo summary::after {
+  content: ''; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg); transition: transform .15s; margin-right: 4px;
+}
+.nav-grupo[open] summary::after { transform: rotate(45deg); }
+.nav-grupo summary:hover { background: rgba(201,162,39,.1); color: var(--dourado); }
+.nav-grupo summary:focus-visible { outline: 2px solid var(--dourado-claro); outline-offset: 1px; }
+.nav-subitens { display: flex; flex-direction: column; gap: 2px; margin: 2px 0 4px 14px; padding-left: 8px; border-left: 1px solid var(--borda); }
+.nav-subitens a { font-size: 13px; padding: 8px 12px; }
 
 .sidebar-usuario { margin-top: auto; border-top: 1px solid var(--borda); padding-top: 16px; }
 .sidebar-usuario .nome { font-size: 14px; color: #fff; }
