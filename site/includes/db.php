@@ -171,6 +171,10 @@ function criarTabelasDecimo(PDO $pdo): void
     if (!colunaExiste($pdo, 'decimo_empresa', 'pro_labore')) {
         $pdo->exec("ALTER TABLE decimo_empresa ADD COLUMN pro_labore TINYINT NOT NULL DEFAULT 0");
     }
+    // Time (equipe) responsável pela empresa, para filtrar e comparar andamento por time.
+    if (!colunaExiste($pdo, 'decimo_empresa', 'equipe')) {
+        $pdo->exec("ALTER TABLE decimo_empresa ADD COLUMN equipe VARCHAR(100) NULL");
+    }
 }
 
 function gerarId(): string

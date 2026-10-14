@@ -19,7 +19,7 @@ function decimoListarEmpresas(): array
     $stmt = getDB()->query("
         SELECT id, codigo, nome, cnpj,
                ad_status, ad_executor_id, int_status, int_executor_id,
-               enc_status, enc_executor_id, observacao, pro_labore, atualizado_por, atualizado_em
+               enc_status, enc_executor_id, observacao, pro_labore, equipe, atualizado_por, atualizado_em
         FROM decimo_empresa ORDER BY nome
     ");
     $lista = $stmt->fetchAll();
@@ -107,7 +107,7 @@ function decimoLinhasParaEmpresas(array $matriz): array
         return [];
     }
 
-    $iCod = $iNome = $iCnpj = null;
+    $iCod = $iNome = $iCnpj = $iEquipe = null;
     $cab = array_map(fn($c) => mb_strtolower(trim((string)$c)), $matriz[0]);
     $temCabecalho = false;
     // Só vale como cabeçalho se a célula for exatamente um nome de coluna conhecido
@@ -115,17 +115,19 @@ function decimoLinhasParaEmpresas(array $matriz): array
     foreach ($cab as $i => $c) {
         if ($iCod === null && preg_match('/^(c[oó]d\.?|c[oó]digo|codigo|c[oó]d\. ?empresa|c[oó]digo da empresa)$/u', $c)) { $iCod = $i; $temCabecalho = true; }
         elseif ($iCnpj === null && preg_match('/^(cnpj|cnpj\/cpf|cnpj da empresa)$/u', $c)) { $iCnpj = $i; $temCabecalho = true; }
+        elseif ($iEquipe === null && preg_match('/^(time|equipe|c[eé]lula|celula|time respons[aá]vel)$/u', $c)) { $iEquipe = $i; $temCabecalho = true; }
         elseif ($iNome === null && preg_match('/^(nome|empresa|nome da empresa|nome empresa|raz[aã]o social|raz[aã]o|cliente)$/u', $c)) { $iNome = $i; $temCabecalho = true; }
     }
 
     if ($temCabecalho && $iNome !== null) {
         array_shift($matriz);
     } else {
-        $iCod = $iNome = $iCnpj = null;
+        $iCod = $iNome = $iCnpj = $iEquipe = null;
         $n = count($matriz[0]);
         if ($n <= 1) { $iNome = 0; }
         elseif ($n === 2) { $iCod = 0; $iNome = 1; }
-        else { $iCod = 0; $iNome = 1; $iCnpj = 2; }
+        elseif ($n === 3) { $iCod = 0; $iNome = 1; $iCnpj = 2; }
+        else { $iCod = 0; $iNome = 1; $iCnpj = 2; $iEquipe = 3; }
     }
 
     $empresas = [];
@@ -138,47 +140,75 @@ function decimoLinhasParaEmpresas(array $matriz): array
             $cod = (string)(int)$l[$iCod];
         }
         $cnpj = $iCnpj !== null ? trim((string)($l[$iCnpj] ?? '')) : '';
-        $empresas[] = ['codigo' => $cod, 'nome' => $nome, 'cnpj' => $cnpj];
+        $equipe = $iEquipe !== null ? trim(preg_replace('/\s+/', ' ', (string)($l[$iEquipe] ?? ''))) : '';
+        $empresas[] = ['codigo' => $cod, 'nome' => $nome, 'cnpj' => $cnpj, 'equipe' => $equipe];
     }
     return $empresas;
 }
 
-// Importa empresas novas, ignorando as que já existem (mesmo CNPJ ou mesmo nome).
+// Importa empresas novas. Empresas que já existem (mesmo CNPJ ou mesmo nome) não são
+// duplicadas e nunca perdem as marcações; só o time (equipe) é atualizado, se vier no arquivo.
 function decimoImportarEmpresas(array $empresas): array
 {
     $pdo = getDB();
-    $existentes = $pdo->query("SELECT nome, cnpj FROM decimo_empresa")->fetchAll();
-    $nomes = [];
-    $cnpjs = [];
+    $existentes = $pdo->query("SELECT id, nome, cnpj, equipe FROM decimo_empresa")->fetchAll();
+    $porNome = [];
+    $porCnpj = [];
+    $equipeAtual = [];
     foreach ($existentes as $e) {
-        $nomes[decimoNormalizarNome($e['nome'])] = true;
+        $porNome[decimoNormalizarNome($e['nome'])] = $e['id'];
         $d = decimoSoDigitos($e['cnpj']);
-        if ($d !== '') $cnpjs[$d] = true;
+        if ($d !== '') $porCnpj[$d] = $e['id'];
+        $equipeAtual[$e['id']] = (string)$e['equipe'];
     }
 
     $ins = $pdo->prepare("
-        INSERT INTO decimo_empresa (id, codigo, nome, cnpj, created_at)
-        VALUES (?, ?, ?, ?, NOW())
+        INSERT INTO decimo_empresa (id, codigo, nome, cnpj, equipe, created_at)
+        VALUES (?, ?, ?, ?, ?, NOW())
     ");
+    $upd = $pdo->prepare("UPDATE decimo_empresa SET equipe = ? WHERE id = ?");
     $novas = 0;
     $ignoradas = 0;
+    $atualizadas = 0;
+    $tocadas = [];
     $pdo->beginTransaction();
     try {
         foreach ($empresas as $e) {
             $chaveNome = decimoNormalizarNome($e['nome']);
             $d = decimoSoDigitos($e['cnpj']);
-            if (isset($nomes[$chaveNome]) || ($d !== '' && isset($cnpjs[$d]))) {
+            $equipe = mb_substr($e['equipe'] ?? '', 0, 100);
+            $idExistente = $porNome[$chaveNome] ?? ($d !== '' ? ($porCnpj[$d] ?? null) : null);
+
+            if ($idExistente !== null && isset($tocadas[$idExistente])) {
+                // Linha repetida dentro do mesmo arquivo: vale a primeira ocorrência.
                 $ignoradas++;
                 continue;
             }
+
+            if ($idExistente !== null) {
+                $tocadas[$idExistente] = true;
+                if ($equipe !== '' && $equipeAtual[$idExistente] !== $equipe) {
+                    $upd->execute([$equipe, $idExistente]);
+                    $equipeAtual[$idExistente] = $equipe;
+                    $atualizadas++;
+                } else {
+                    $ignoradas++;
+                }
+                continue;
+            }
+
+            $id = gerarId();
             $ins->execute([
-                gerarId(),
+                $id,
                 $e['codigo'] !== '' ? mb_substr($e['codigo'], 0, 50) : null,
                 mb_substr($e['nome'], 0, 255),
                 $e['cnpj'] !== '' ? mb_substr($e['cnpj'], 0, 20) : null,
+                $equipe !== '' ? $equipe : null,
             ]);
-            $nomes[$chaveNome] = true;
-            if ($d !== '') $cnpjs[$d] = true;
+            $porNome[$chaveNome] = $id;
+            if ($d !== '') $porCnpj[$d] = $id;
+            $equipeAtual[$id] = $equipe;
+            $tocadas[$id] = true;
             $novas++;
         }
         $pdo->commit();
@@ -186,7 +216,7 @@ function decimoImportarEmpresas(array $empresas): array
         $pdo->rollBack();
         throw $t;
     }
-    return ['novas' => $novas, 'ignoradas' => $ignoradas];
+    return ['novas' => $novas, 'ignoradas' => $ignoradas, 'atualizadas' => $atualizadas];
 }
 
 function decimoImportarExecutores(array $nomes): array

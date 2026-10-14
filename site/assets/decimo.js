@@ -56,11 +56,34 @@
     return e ? e.nome : null;
   }
 
+  // ---------- times ----------
+  let filtroEquipe = ''; // '' = todos | '__sem__' = sem time | nome do time
+
+  function listaEquipes() {
+    return [...new Set(empresas.map((e) => e.equipe).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  }
+
+  function noFiltroEquipe(e) {
+    if (!filtroEquipe) return true;
+    if (filtroEquipe === '__sem__') return !e.equipe;
+    return e.equipe === filtroEquipe;
+  }
+
+  function opcoesEquipe(select) {
+    const equipes = listaEquipes();
+    const semTime = empresas.some((e) => !e.equipe);
+    select.replaceChildren(el('option', { value: '', text: 'Todos os times' }));
+    equipes.forEach((t) => select.append(el('option', { value: t, text: t })));
+    if (equipes.length && semTime) select.append(el('option', { value: '__sem__', text: 'Sem time definido' }));
+    select.value = [...select.options].some((o) => o.value === filtroEquipe) ? filtroEquipe : '';
+    filtroEquipe = select.value;
+  }
+
   // ---------- cálculos (usados pelo dashboard) ----------
-  function calcularResumo() {
+  function calcularResumo(lista) {
     // Empresas em S.M/Pró-labore ficam fora de todos os cálculos
-    const todas = empresas;
-    const empresas_ = empresas.filter((e) => !e.pro_labore);
+    const todas = lista || empresas;
+    const empresas_ = todas.filter((e) => !e.pro_labore);
     const foraDoCalculo = todas.length - empresas_.length;
     const porEtapa = {};
     let feitosTot = 0, aplicTot = 0;
@@ -139,12 +162,26 @@
     ]);
   }
 
+  let dashConteudo = null;
+  let dashSelectEquipe = null;
+
   function renderDashboard() {
-    const r = calcularResumo();
-    raiz.replaceChildren();
+    if (!dashConteudo) {
+      dashSelectEquipe = el('select', { className: 'filtro-select', 'aria-label': 'Filtrar por time' });
+      dashSelectEquipe.addEventListener('change', () => { filtroEquipe = dashSelectEquipe.value; renderDashboard(); });
+      dashConteudo = el('div');
+      raiz.replaceChildren(el('div', { className: 'barra-filtros' }, [dashSelectEquipe]), dashConteudo);
+    }
+    opcoesEquipe(dashSelectEquipe);
+    dashSelectEquipe.parentElement.style.display = listaEquipes().length ? '' : 'none';
+
+    const lista = empresas.filter(noFiltroEquipe);
+    const r = calcularResumo(lista);
+    const alvo = dashConteudo;
+    alvo.replaceChildren();
 
     if (empresas.length === 0) {
-      raiz.append(el('div', { className: 'card', style: 'text-align:center;' }, [
+      alvo.append(el('div', { className: 'card', style: 'text-align:center;' }, [
         el('p', { text: 'Ainda não há empresas cadastradas no controle do 13º.' }),
         el('p', { className: 'texto-fraco', text: 'O gestor pode importar a lista em Controle 13º.' }),
       ]));
@@ -155,13 +192,35 @@
       medidor('Geral', r.geral, true),
       ...ETAPAS.map((e) => medidor(e.nome, r.porEtapa[e.k], false)),
     ]);
-    raiz.append(grade);
+    alvo.append(grade);
 
-    raiz.append(el('p', { className: 'texto-fraco mb-3', text: r.empresasCompletas + ' de ' + r.totalNoCalculo + ' empresas com as três etapas resolvidas (feitas ou N/A).' + (r.foraDoCalculo ? ' ' + r.foraDoCalculo + ' empresa(s) em S.M/Pró-labore ficam fora do cálculo.' : '') }));
+    alvo.append(el('p', { className: 'texto-fraco mb-3', text: r.empresasCompletas + ' de ' + r.totalNoCalculo + ' empresas com as três etapas resolvidas (feitas ou N/A).' + (r.foraDoCalculo ? ' ' + r.foraDoCalculo + ' empresa(s) em S.M/Pró-labore ficam fora do cálculo.' : '') }));
+
+    // Andamento por time (só quando não está filtrado)
+    const equipes = listaEquipes();
+    if (!filtroEquipe && equipes.length > 1) {
+      const cardTimes = el('div', { className: 'card mb-3' }, [el('div', { className: 'secao-titulo', text: 'Andamento por time (Ad + Int + Encargos)' })]);
+      const grupos = equipes.map((t) => [t, empresas.filter((e) => e.equipe === t)]);
+      const semTime = empresas.filter((e) => !e.equipe);
+      if (semTime.length) grupos.push(['Sem time definido', semTime]);
+      grupos.forEach(([nome, lst]) => {
+        const g = calcularResumo(lst);
+        const linha = el('div', { className: 'time-linha' }, [
+          el('div', { className: 'rank-topo' }, [
+            el('span', { className: 'rank-nome', text: nome }),
+            el('span', { className: 'rank-total', text: fmtPct(g.geral.pct) }),
+          ]),
+          el('div', { className: 'rank-barra' }, [el('div', { className: 'rank-barra-cheia', style: 'width:' + (g.geral.pct || 0) + '%' })]),
+          el('div', { className: 'texto-fraco', text: g.totalNoCalculo + ' empresas · Ad ' + fmtPct(g.porEtapa.ad.pct) + ' · Int ' + fmtPct(g.porEtapa.int.pct) + ' · Encargos ' + fmtPct(g.porEtapa.enc.pct) }),
+        ]);
+        cardTimes.append(linha);
+      });
+      alvo.append(cardTimes);
+    }
 
     // Ranking
     const maxTotal = r.ranking.length ? Math.max(1, ...r.ranking.map((x) => x.total)) : 1;
-    const card = el('div', { className: 'card' }, [el('div', { className: 'secao-titulo', text: 'Ranking de executores (Ad + Int + Encargos)' })]);
+    const card = el('div', { className: 'card' }, [el('div', { className: 'secao-titulo', text: 'Ranking de executores (Ad + Int + Encargos)' + (filtroEquipe ? ' · ' + (filtroEquipe === '__sem__' ? 'sem time' : filtroEquipe) : '') })]);
     if (r.ranking.length === 0) {
       card.append(el('p', { className: 'texto-fraco', text: 'Nenhum executor atribuído ainda.' }));
     } else {
@@ -183,10 +242,10 @@
     if (r.semExecutor > 0) {
       card.append(el('p', { className: 'texto-fraco mt-3', text: r.semExecutor + ' etapa(s) marcada(s) como feita(s) sem executor definido (não entram no ranking).' }));
     }
-    raiz.append(card);
+    alvo.append(card);
 
     const agora = new Date();
-    raiz.append(el('p', { className: 'texto-fraco mt-3', text: 'Atualizado às ' + agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + ' (atualiza sozinho a cada 30 segundos).' }));
+    alvo.append(el('p', { className: 'texto-fraco mt-3', text: 'Atualizado às ' + agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + ' (atualiza sozinho a cada 30 segundos).' }));
   }
 
   // =====================================================================
@@ -226,6 +285,7 @@
   }
 
   function passaFiltro(e) {
+    if (!noFiltroEquipe(e)) return false;
     if (filtroBusca) {
       const alvo = (e.nome + ' ' + (e.cnpj || '') + ' ' + (e.codigo || '')).toLowerCase();
       if (!alvo.includes(filtroBusca)) return false;
@@ -315,6 +375,7 @@
     const nomeTd = el('td', { className: 'col-empresa' }, [
       el('div', { className: 'empresa-nome', text: e.nome }),
       el('div', { className: 'texto-fraco', text: [e.codigo, e.cnpj].filter(Boolean).join(' · ') }),
+      e.equipe ? el('span', { className: 'tag-equipe', text: e.equipe }) : null,
     ]);
     const caixaPl = el('input', { type: 'checkbox', 'aria-label': 'S.M/Pró-labore' });
     caixaPl.checked = !!e.pro_labore;
@@ -376,6 +437,10 @@
     ]);
     sit.addEventListener('change', () => { filtroSituacao = sit.value; renderLinhas(); });
 
+    const eq = el('select', { className: 'filtro-select', 'aria-label': 'Filtrar por time' });
+    opcoesEquipe(eq);
+    eq.addEventListener('change', () => { filtroEquipe = eq.value; renderLinhas(); });
+
     const ex = el('select', { className: 'filtro-select' }, [el('option', { value: '', text: 'Todos os executores' }), el('option', { value: '__sem__', text: 'Com etapa sem executor' })]);
     executores.forEach((x) => ex.append(el('option', { value: x.id, text: x.nome })));
     ex.addEventListener('change', () => { filtroExecutor = ex.value; renderLinhas(); });
@@ -384,7 +449,7 @@
       type: 'button', className: 'btn btn-ghost btn-sm', text: 'Recarregar dados',
       onclick: async () => { await carregar(); renderControle(); },
     });
-    return el('div', { className: 'barra-filtros' }, [busca, sit, ex, recarregar]);
+    return el('div', { className: 'barra-filtros' }, [busca, ...(listaEquipes().length ? [eq] : []), sit, ex, recarregar]);
   }
 
   // ----- painel do gestor: executores e importação -----
@@ -440,7 +505,7 @@
     // Importação de empresas
     const txtEmp = el('textarea', {
       rows: 5, className: 'config-texto',
-      placeholder: 'Cole aqui direto do Excel (colunas: código, nome, CNPJ) ou só os nomes, um por linha',
+      placeholder: 'Cole aqui direto do Excel (colunas: código, nome, CNPJ, time) ou só os nomes, um por linha',
     });
     const arquivo = el('input', { type: 'file', accept: '.xlsx,.csv,.txt' });
     const btnEmp = el('button', {
@@ -461,7 +526,7 @@
           await carregar();
           txtEmp.value = '';
           arquivo.value = '';
-          msgConfig(r.novas + ' empresa(s) importada(s)' + (r.ignoradas ? ', ' + r.ignoradas + ' ignorada(s) por já existirem' : '') + '.');
+          msgConfig(r.novas + ' empresa(s) importada(s)' + (r.atualizadas ? ', ' + r.atualizadas + ' com time atualizado' : '') + (r.ignoradas ? ', ' + r.ignoradas + ' já existia(m) e não mudou(aram)' : '') + '.');
           renderControle(true);
         } catch (err) { msgConfig(err.message, true); }
       },
@@ -474,7 +539,7 @@
       ]),
       el('div', { className: 'config-bloco' }, [
         el('div', { className: 'secao-titulo', text: 'Importar empresas' }),
-        el('p', { className: 'texto-fraco', text: 'Aceita colar do Excel ou enviar .xlsx/.csv. Se a primeira linha tiver cabeçalho (código, nome/empresa, CNPJ) eu identifico as colunas. Empresas que já existem são ignoradas.' }),
+        el('p', { className: 'texto-fraco', text: 'Aceita colar do Excel ou enviar .xlsx/.csv, com as colunas código, nome, CNPJ e time (nessa ordem, ou com cabeçalho). Empresas que já existem não duplicam nem perdem marcações; só o time é atualizado.' }),
         txtEmp,
         el('div', { className: 'config-linha' }, [arquivo, btnEmp]),
       ]),

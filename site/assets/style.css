@@ -303,3 +303,8 @@ a { color: inherit; }
 .tabela-decimo tr.prolabore td > *:not(.pl-toggle) { opacity: .35; }
 .tabela-decimo tr.prolabore .obs { opacity: .6; }
 .tabela-decimo tr.prolabore .pl-toggle { color: var(--dourado); font-weight: 600; }
+
+/* Times (equipes) */
+.tag-equipe { display: inline-block; margin-top: 4px; margin-right: 6px; font-size: 10px; letter-spacing: .5px; text-transform: uppercase; color: var(--dourado-claro); border: 1px solid var(--borda); border-radius: 999px; padding: 1px 8px; }
+.time-linha { padding: 8px 0; border-bottom: 1px solid var(--borda); }
+.time-linha:last-child { border-bottom: none; }
