@@ -230,6 +230,11 @@
     const total = feitas + dados.a_executar.length;
     const pct = total ? Math.round((feitas / total) * 100) : 0;
 
+    const marcas = el('div', { className: 'marcas' }, [
+      el('img', { src: 'assets/img/logo.jpg', alt: 'Mecanismo DP, gestão de departamento pessoal' }),
+      el('img', { src: 'assets/img/pretorian.png', alt: 'Pretorian, gestão de alta performance e contabilidade' }),
+    ]);
+
     const cabecalho = el('div', { className: 'inicio-topo' }, [
       el('div', { className: 'dia-destaque' }, [
         el('div', { className: 'dia-numero font-display', text: String(d.getDate()) }),
@@ -242,6 +247,7 @@
           ]) : null,
         ]),
       ]),
+      marcas,
       el('div', { className: 'nav-dia' }, [
         el('button', { type: 'button', className: 'nav-seta', 'aria-label': 'Dia anterior', title: 'Dia anterior', text: '‹', onclick: () => navegarPara(somarDias(dia, -1)) }),
         seletor,
