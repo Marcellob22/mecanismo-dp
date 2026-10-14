@@ -93,6 +93,7 @@ function criarTabelas(PDO $pdo): void
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     ");
 
+    criarTabelasDecimo($pdo);
     migrarColunasNovas($pdo);
 }
 
@@ -120,6 +121,39 @@ function migrarColunasNovas(PDO $pdo): void
     if (!colunaExiste($pdo, 'planejamento', 'status')) {
         $pdo->exec("ALTER TABLE planejamento ADD COLUMN status ENUM('ATIVO','CONCLUIDO') NOT NULL DEFAULT 'ATIVO'");
     }
+}
+
+// Controle do 13º salário (2026): empresas, executores e marcações por etapa.
+// status de cada etapa: 0 = pendente, 1 = feito, 2 = não se aplica.
+function criarTabelasDecimo(PDO $pdo): void
+{
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS decimo_executor (
+            id VARCHAR(36) PRIMARY KEY,
+            nome VARCHAR(255) NOT NULL UNIQUE,
+            ativo TINYINT(1) NOT NULL DEFAULT 1,
+            created_at DATETIME NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS decimo_empresa (
+            id VARCHAR(36) PRIMARY KEY,
+            codigo VARCHAR(50) NULL,
+            nome VARCHAR(255) NOT NULL,
+            cnpj VARCHAR(20) NULL,
+            ad_status TINYINT NOT NULL DEFAULT 0,
+            ad_executor_id VARCHAR(36) NULL,
+            int_status TINYINT NOT NULL DEFAULT 0,
+            int_executor_id VARCHAR(36) NULL,
+            enc_status TINYINT NOT NULL DEFAULT 0,
+            enc_executor_id VARCHAR(36) NULL,
+            observacao TEXT NULL,
+            atualizado_por VARCHAR(255) NULL,
+            atualizado_em DATETIME NULL,
+            created_at DATETIME NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
 }
 
 function gerarId(): string

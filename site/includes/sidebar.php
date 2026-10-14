@@ -12,6 +12,8 @@ $rotulos = ['GESTOR' => 'Gestor', 'CONSULTOR' => 'Consultor', 'OPERACIONAL' => '
 
     <nav class="sidebar-nav">
       <a href="dashboard.php">Calendário</a>
+      <a href="controle13.php">Controle 13º</a>
+      <a href="dashboard13.php">Dashboard 13º</a>
       <a href="conferencia.php">Conferência de Folha</a>
       <?php if ($user['role'] === 'GESTOR'): ?>
         <a href="admin.php">Administração</a>
