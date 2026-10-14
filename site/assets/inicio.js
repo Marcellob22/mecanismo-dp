@@ -57,9 +57,13 @@
     render();
   }
 
-  async function alternar(item) {
+  async function alternar(item, botao) {
     aviso('');
     try {
+      if (botao) {
+        botao.classList.add('pulsando');
+        await new Promise((r) => setTimeout(r, 230));
+      }
       await api('PATCH', 'api/inicio.php', {
         origem: item.origem, id: item.id, hoje,
         status: item.status === 'CONCLUIDA' ? 'PENDENTE' : 'CONCLUIDA',
@@ -96,9 +100,9 @@
 
   function prazoInfo(item) {
     const f = diffDias(item.prazo, hoje);
-    if (f < 0) return { texto: 'Prazo ' + dm(item.prazo) + ' · atrasada há ' + (-f) + (f === -1 ? ' dia' : ' dias'), classe: 'atrasada' };
-    if (f === 0) return { texto: 'Prazo ' + dm(item.prazo) + ' · vence hoje', classe: 'hoje' };
-    return { texto: 'Prazo ' + dm(item.prazo) + ' · faltam ' + f + (f === 1 ? ' dia' : ' dias'), classe: '' };
+    if (f < 0) return { texto: 'Atrasada há ' + (-f) + (f === -1 ? ' dia' : ' dias') + ' (prazo ' + dm(item.prazo) + ')', classe: 'atrasada' };
+    if (f === 0) return { texto: 'Vence hoje', classe: 'hoje' };
+    return { texto: 'Faltam ' + f + (f === 1 ? ' dia' : ' dias') + ' (prazo ' + dm(item.prazo) + ')', classe: f <= 2 ? 'hoje' : '' };
   }
 
   function linha(item, grupo) {
@@ -107,7 +111,7 @@
       type: 'button', className: 'check-btn' + (feito ? ' feito' : ''),
       'aria-label': feito ? 'Desfazer conclusão' : 'Marcar como concluída',
       title: feito ? 'Desfazer' : 'Concluir',
-      onclick: () => alternar(item),
+      onclick: (ev) => alternar(item, ev.currentTarget),
     }, [iconeCheck()]);
 
     const sub = [];
@@ -126,31 +130,50 @@
       sub.length ? el('div', { className: 'item-sub' }, sub) : null,
     ]);
 
-    const linhaEl = el('div', { className: 'atividade' + (feito ? ' feita' : '') }, [btn, corpo]);
+    let extra = '';
+    if (grupo === 3 && !feito) {
+      const f = diffDias(item.prazo, hoje);
+      extra = f < 0 ? ' atrasada' : f <= 2 ? ' urgente' : '';
+    }
+    const linhaEl = el('div', { className: 'atividade' + (feito ? ' feita' : '') + extra }, [btn, corpo]);
     if (item.origem === 'atividade') {
       linhaEl.append(el('button', { type: 'button', className: 'btn-remover', title: 'Excluir', text: '×', onclick: () => excluir(item) }));
     }
     return linhaEl;
   }
 
-  function formSimples(placeholder, rotuloBotao, aoEnviar) {
-    const input = el('input', { type: 'text', placeholder, maxlength: '255', className: 'add-input' });
+  function iconeMais() {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('width', '18'); svg.setAttribute('height', '18');
+    const p = document.createElementNS(ns, 'path');
+    p.setAttribute('d', 'M12 5v14M5 12h14'); p.setAttribute('fill', 'none'); p.setAttribute('stroke', 'currentColor');
+    p.setAttribute('stroke-width', '2.4'); p.setAttribute('stroke-linecap', 'round');
+    svg.append(p);
+    return svg;
+  }
+
+  function formSimples(placeholder, aoEnviar) {
+    const input = el('input', { type: 'text', placeholder, maxlength: '255', className: 'add-input', 'aria-label': placeholder });
     const enviar = async () => {
       const t = input.value.trim();
-      if (!t) return;
+      if (!t) { input.focus(); return; }
       aviso('');
       try { await aoEnviar(t); input.value = ''; await carregar(); } catch (e) { aviso(e.message); }
     };
     input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); enviar(); } });
-    return el('div', { className: 'add-linha' }, [input, el('button', { type: 'button', className: 'btn btn-outline btn-sm', text: rotuloBotao, onclick: enviar })]);
+    return el('div', { className: 'add-pilula' }, [
+      input,
+      el('button', { type: 'button', className: 'add-mais', 'aria-label': 'Adicionar', title: 'Adicionar', onclick: enviar }, [iconeMais()]),
+    ]);
   }
 
   function formGrande() {
-    const input = el('input', { type: 'text', placeholder: 'Nova demanda grande', maxlength: '255', className: 'add-input' });
-    const prazo = el('input', { type: 'date', className: 'add-data', value: somarDias(hoje, 7), 'aria-label': 'Prazo' });
+    const input = el('input', { type: 'text', placeholder: 'Nova demanda grande', maxlength: '255', className: 'add-input', 'aria-label': 'Nova demanda grande' });
+    const prazo = el('input', { type: 'date', className: 'add-data', value: somarDias(hoje, 7), 'aria-label': 'Prazo da demanda' });
     const enviar = async () => {
       const t = input.value.trim();
-      if (!t) return;
+      if (!t) { input.focus(); return; }
       aviso('');
       try {
         await api('POST', 'api/inicio.php', { titulo: t, tipo: 'GRANDE', prazo: prazo.value });
@@ -160,22 +183,24 @@
     };
     input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); enviar(); } });
     return el('div', { className: 'add-grande' }, [
-      input,
-      el('div', { className: 'add-linha' }, [
-        el('label', { className: 'texto-fraco', text: 'Prazo' }), prazo,
-        el('button', { type: 'button', className: 'btn btn-outline btn-sm', text: 'Adicionar', onclick: enviar }),
+      el('div', { className: 'add-pilula' }, [
+        input,
+        el('button', { type: 'button', className: 'add-mais', 'aria-label': 'Adicionar', title: 'Adicionar', onclick: enviar }, [iconeMais()]),
       ]),
+      el('label', { className: 'add-prazo' }, [el('span', { text: 'Prazo' }), prazo]),
     ]);
   }
 
-  function bloco(titulo, subtitulo, qtd, filhos) {
-    return el('section', { className: 'card bloco-inicio' }, [
-      el('div', { className: 'bloco-topo' }, [
+  function bloco(classe, titulo, qtd, corpo, rodape) {
+    return el('section', { className: 'coluna ' + classe }, [
+      el('header', { className: 'coluna-topo' }, [
         el('h2', { className: 'font-display', text: titulo }),
         el('span', { className: 'contagem', text: String(qtd) }),
       ]),
-      subtitulo ? el('p', { className: 'texto-fraco', text: subtitulo }) : null,
-      ...filhos,
+      el('div', { className: 'bloco' }, [
+        el('div', { className: 'bloco-lista' }, corpo),
+        el('div', { className: 'bloco-rodape' }, [rodape]),
+      ]),
     ]);
   }
 
@@ -196,42 +221,56 @@
   function render() {
     raiz.replaceChildren();
     const r = rotuloDia();
+    const d = daISO(dia);
 
-    const seletor = el('input', { type: 'date', value: dia, className: 'add-data', 'aria-label': 'Ir para o dia' });
+    const seletor = el('input', { type: 'date', value: dia, className: 'seletor-data', 'aria-label': 'Escolher o dia' });
     seletor.addEventListener('change', () => { if (seletor.value) navegarPara(seletor.value); });
 
-    raiz.append(el('div', { className: 'nav-dia' }, [
-      el('button', { type: 'button', className: 'btn btn-ghost btn-sm', text: '←', title: 'Dia anterior', onclick: () => navegarPara(somarDias(dia, -1)) }),
-      el('div', { className: 'nav-dia-texto' }, [
-        el('div', { className: 'nav-dia-nome font-display', text: r.nome || dmy(dia) }),
-        el('div', { className: 'texto-fraco', text: r.data }),
+    const feitas = dados.executadas.length;
+    const total = feitas + dados.a_executar.length;
+    const pct = total ? Math.round((feitas / total) * 100) : 0;
+
+    const cabecalho = el('div', { className: 'inicio-topo' }, [
+      el('div', { className: 'dia-destaque' }, [
+        el('div', { className: 'dia-numero font-display', text: String(d.getDate()) }),
+        el('div', { className: 'dia-texto' }, [
+          el('div', { className: 'dia-semana font-display', text: r.nome ? r.nome + ', ' + DIAS_SEMANA[d.getDay()] : DIAS_SEMANA[d.getDay()] }),
+          el('div', { className: 'texto-fraco', text: MESES[d.getMonth()] + ' de ' + d.getFullYear() }),
+          total ? el('div', { className: 'progresso-dia' }, [
+            el('div', { className: 'progresso-barra' }, [el('span', { style: 'width:' + pct + '%' })]),
+            el('span', { className: 'texto-fraco', text: feitas + ' de ' + total + (total === 1 ? ' atividade' : ' atividades') }),
+          ]) : null,
+        ]),
       ]),
-      el('button', { type: 'button', className: 'btn btn-ghost btn-sm', text: '→', title: 'Próximo dia', onclick: () => navegarPara(somarDias(dia, 1)) }),
-      seletor,
-      dia !== hoje ? el('button', { type: 'button', className: 'btn btn-outline btn-sm', text: 'Hoje', onclick: () => navegarPara(hoje) }) : null,
-    ]));
+      el('div', { className: 'nav-dia' }, [
+        el('button', { type: 'button', className: 'nav-seta', 'aria-label': 'Dia anterior', title: 'Dia anterior', text: '‹', onclick: () => navegarPara(somarDias(dia, -1)) }),
+        seletor,
+        el('button', { type: 'button', className: 'nav-seta', 'aria-label': 'Próximo dia', title: 'Próximo dia', text: '›', onclick: () => navegarPara(somarDias(dia, 1)) }),
+        dia !== hoje ? el('button', { type: 'button', className: 'btn btn-outline btn-sm', text: 'Voltar para hoje', onclick: () => navegarPara(hoje) }) : null,
+      ]),
+    ]);
+    raiz.append(cabecalho);
 
     msgEl = el('p', { className: 'erro-msg' });
     raiz.append(msgEl);
 
-    const vazio = (t) => el('p', { className: 'texto-fraco vazio', text: t });
-
-    const b1 = bloco('Atividades Executadas', 'Concluídas em ' + (r.nome ? r.nome.toLowerCase() : dm(dia)) + '.', dados.executadas.length, [
-      ...(dados.executadas.length ? dados.executadas.map((i) => linha(i, 1)) : [vazio('Nada concluído neste dia ainda.')]),
-      formSimples('Registrar atividade já executada', 'Registrar', (t) =>
-        api('POST', 'api/inicio.php', { titulo: t, tipo: 'DIA', data: dia, executada: true })),
+    const vazio = (titulo, dica) => el('div', { className: 'vazio' }, [
+      el('p', { className: 'vazio-titulo font-display', text: titulo }),
+      el('p', { className: 'texto-fraco', text: dica }),
     ]);
+    const nomeDia = r.nome ? r.nome.toLowerCase() : 'o dia ' + dm(dia);
 
-    const b2 = bloco('Atividades a Executar', 'Marque o check para concluir.', dados.a_executar.length, [
-      ...(dados.a_executar.length ? dados.a_executar.map((i) => linha(i, 2)) : [vazio('Nenhuma atividade pendente.')]),
-      formSimples('Nova atividade para ' + (r.nome ? r.nome.toLowerCase() : dm(dia)), 'Adicionar', (t) =>
-        api('POST', 'api/inicio.php', { titulo: t, tipo: 'DIA', data: dia })),
-    ]);
+    const b1 = bloco('col-feitas', 'Atividades Executadas', dados.executadas.length,
+      dados.executadas.length ? dados.executadas.map((i) => linha(i, 1)) : [vazio('Nada concluído ainda', 'Marque o check em uma atividade ou registre o que você já fez.')],
+      formSimples('Registrar o que já fez', (t) => api('POST', 'api/inicio.php', { titulo: t, tipo: 'DIA', data: dia, executada: true })));
 
-    const b3 = bloco('Grandes Pendências', 'Demandas grandes, com prazo.', dados.grandes.length, [
-      ...(dados.grandes.length ? dados.grandes.map((i) => linha(i, 3)) : [vazio('Nenhuma demanda grande em aberto.')]),
-      formGrande(),
-    ]);
+    const b2 = bloco('col-fazer', 'Atividades a Executar', dados.a_executar.length,
+      dados.a_executar.length ? dados.a_executar.map((i) => linha(i, 2)) : [vazio('Tudo em dia', 'Adicione uma atividade para ' + nomeDia + '.')],
+      formSimples('Nova atividade para ' + nomeDia, (t) => api('POST', 'api/inicio.php', { titulo: t, tipo: 'DIA', data: dia })));
+
+    const b3 = bloco('col-grandes', 'Grandes Pendências', dados.grandes.length,
+      dados.grandes.length ? dados.grandes.map((i) => linha(i, 3)) : [vazio('Nenhuma demanda grande', 'Cadastre uma com prazo para acompanhar aqui.')],
+      formGrande());
 
     raiz.append(el('div', { className: 'inicio-grid' }, [b1, b2, b3]));
   }
