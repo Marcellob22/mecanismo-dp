@@ -3,6 +3,7 @@
 $rotulos = ['GESTOR' => 'Gestor', 'CONSULTOR' => 'Consultor', 'OPERACIONAL' => 'Operacional'];
 $paginaAtual = basename($_SERVER['SCRIPT_NAME'] ?? '');
 $grupo13Aberto = in_array($paginaAtual, ['controle13.php', 'dashboard13.php'], true);
+$grupoFerramentasAberto = in_array($paginaAtual, ['simulador-rescisao.php'], true);
 $ativo = fn(string $arquivo) => $paginaAtual === $arquivo ? ' class="ativo" aria-current="page"' : '';
 ?>
 <div class="sidebar" id="sidebar">
@@ -21,6 +22,12 @@ $ativo = fn(string $arquivo) => $paginaAtual === $arquivo ? ' class="ativo" aria
         <div class="nav-subitens">
           <a href="controle13.php"<?= $ativo('controle13.php') ?>>Controle 13º</a>
           <a href="dashboard13.php"<?= $ativo('dashboard13.php') ?>>Dashboard 13º</a>
+        </div>
+      </details>
+      <details class="nav-grupo"<?= $grupoFerramentasAberto ? ' open' : '' ?>>
+        <summary>Ferramentas</summary>
+        <div class="nav-subitens">
+          <a href="simulador-rescisao.php"<?= $ativo('simulador-rescisao.php') ?>>Simulador de Rescisão</a>
         </div>
       </details>
       <?php /* Conferência de Folha oculta do menu até ficar pronta: <a href="conferencia.php">Conferência de Folha</a> */ ?>
