@@ -150,6 +150,30 @@ function decimoLinhasParaEmpresas(array $matriz): array
 // duplicadas e nunca perdem as marcações; só o time (equipe) é atualizado, se vier no arquivo.
 function decimoImportarEmpresas(array $empresas): array
 {
+    // Linhas repetidas no próprio arquivo (mesmo nome ou mesmo CNPJ): fica o cadastro da
+    // primeira linha e vale o time da última linha preenchida.
+    $unicas = [];
+    $indicePorChave = [];
+    $repetidas = 0;
+    foreach ($empresas as $e) {
+        $chaves = ['n:' . decimoNormalizarNome($e['nome'])];
+        $dg = decimoSoDigitos($e['cnpj']);
+        if ($dg !== '') $chaves[] = 'c:' . $dg;
+        $pos = null;
+        foreach ($chaves as $c) {
+            if (isset($indicePorChave[$c])) { $pos = $indicePorChave[$c]; break; }
+        }
+        if ($pos === null) {
+            $pos = count($unicas);
+            $unicas[] = $e;
+        } else {
+            $repetidas++;
+            if (($e['equipe'] ?? '') !== '') $unicas[$pos]['equipe'] = $e['equipe'];
+        }
+        foreach ($chaves as $c) $indicePorChave[$c] = $pos;
+    }
+    $empresas = $unicas;
+
     $pdo = getDB();
     $existentes = $pdo->query("SELECT id, nome, cnpj, equipe FROM decimo_empresa")->fetchAll();
     $porNome = [];
@@ -168,7 +192,7 @@ function decimoImportarEmpresas(array $empresas): array
     ");
     $upd = $pdo->prepare("UPDATE decimo_empresa SET equipe = ? WHERE id = ?");
     $novas = 0;
-    $ignoradas = 0;
+    $ignoradas = $repetidas;
     $atualizadas = 0;
     $tocadas = [];
     $pdo->beginTransaction();
