@@ -136,6 +136,18 @@ function criarTabelasDecimo(PDO $pdo): void
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     ");
 
+    // Lista inicial de executores: entra só uma vez, quando a tabela está vazia.
+    // Depois disso o gestor gerencia a lista pelo painel "Configurar".
+    $total = (int)$pdo->query("SELECT COUNT(*) AS t FROM decimo_executor")->fetch()['t'];
+    if ($total === 0) {
+        $iniciais = ['Marcello', 'Elizabeth', 'Laís', 'Thayanny', 'Liziane', 'Jayanne', 'Marina', 'Anny', 'Leonam',
+                     'Eduardo', 'Diana', 'Clara', 'Gabriella', 'Guilherme', 'Eduarda', 'Gysele', 'Keciane', 'Maynara'];
+        $ins = $pdo->prepare("INSERT INTO decimo_executor (id, nome, ativo, created_at) VALUES (?, ?, 1, NOW())");
+        foreach ($iniciais as $nome) {
+            $ins->execute([gerarId(), $nome]);
+        }
+    }
+
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS decimo_empresa (
             id VARCHAR(36) PRIMARY KEY,
