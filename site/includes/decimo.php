@@ -19,7 +19,7 @@ function decimoListarEmpresas(): array
     $stmt = getDB()->query("
         SELECT id, codigo, nome, cnpj,
                ad_status, ad_executor_id, int_status, int_executor_id,
-               enc_status, enc_executor_id, observacao, atualizado_por, atualizado_em
+               enc_status, enc_executor_id, observacao, pro_labore, atualizado_por, atualizado_em
         FROM decimo_empresa ORDER BY nome
     ");
     $lista = $stmt->fetchAll();
@@ -27,6 +27,7 @@ function decimoListarEmpresas(): array
         foreach (DECIMO_ETAPAS as $et) {
             $e[$et . '_status'] = (int)$e[$et . '_status'];
         }
+        $e['pro_labore'] = (int)$e['pro_labore'];
     }
     return $lista;
 }
@@ -38,7 +39,11 @@ function decimoAtualizarCampo(string $id, string $campo, $valor, string $quemNom
     $camposStatus = ['ad_status', 'int_status', 'enc_status'];
     $camposExecutor = ['ad_executor_id', 'int_executor_id', 'enc_executor_id'];
 
-    if (in_array($campo, $camposStatus, true)) {
+    if ($campo === 'pro_labore') {
+        if (!in_array($valor, [0, 1], true)) {
+            return 'Valor inválido.';
+        }
+    } elseif (in_array($campo, $camposStatus, true)) {
         if (!in_array($valor, [0, 1, 2], true)) {
             return 'Valor inválido.';
         }

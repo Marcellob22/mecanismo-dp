@@ -58,16 +58,20 @@
 
   // ---------- cálculos (usados pelo dashboard) ----------
   function calcularResumo() {
+    // Empresas em S.M/Pró-labore ficam fora de todos os cálculos
+    const todas = empresas;
+    const empresas_ = empresas.filter((e) => !e.pro_labore);
+    const foraDoCalculo = todas.length - empresas_.length;
     const porEtapa = {};
     let feitosTot = 0, aplicTot = 0;
     ETAPAS.forEach(({ k }) => {
       let feitos = 0, na = 0;
-      empresas.forEach((e) => {
+      empresas_.forEach((e) => {
         const s = e[k + '_status'];
         if (s === FEITO) feitos++;
         else if (s === NA) na++;
       });
-      const aplic = empresas.length - na;
+      const aplic = empresas_.length - na;
       porEtapa[k] = { feitos, na, aplic, faltam: aplic - feitos, pct: aplic > 0 ? (feitos / aplic) * 100 : null };
       feitosTot += feitos;
       aplicTot += aplic;
@@ -77,7 +81,7 @@
     // Ranking: soma das três etapas feitas por cada executor
     const mapa = new Map();
     let semExecutor = 0;
-    empresas.forEach((e) => {
+    empresas_.forEach((e) => {
       ETAPAS.forEach(({ k }) => {
         const s = e[k + '_status'];
         const exId = e[k + '_executor_id'];
@@ -93,8 +97,8 @@
     });
     const ranking = [...mapa.values()].sort((a, b) => b.total - a.total || a.nome.localeCompare(b.nome, 'pt-BR'));
 
-    const empresasCompletas = empresas.filter((e) => ETAPAS.every(({ k }) => e[k + '_status'] !== PENDENTE)).length;
-    return { porEtapa, geral, ranking, semExecutor, empresasCompletas };
+    const empresasCompletas = empresas_.filter((e) => ETAPAS.every(({ k }) => e[k + '_status'] !== PENDENTE)).length;
+    return { porEtapa, geral, ranking, semExecutor, empresasCompletas, totalNoCalculo: empresas_.length, foraDoCalculo };
   }
 
   function fmtPct(p) {
@@ -153,7 +157,7 @@
     ]);
     raiz.append(grade);
 
-    raiz.append(el('p', { className: 'texto-fraco mb-3', text: r.empresasCompletas + ' de ' + empresas.length + ' empresas com as três etapas resolvidas (feitas ou N/A).' }));
+    raiz.append(el('p', { className: 'texto-fraco mb-3', text: r.empresasCompletas + ' de ' + r.totalNoCalculo + ' empresas com as três etapas resolvidas (feitas ou N/A).' + (r.foraDoCalculo ? ' ' + r.foraDoCalculo + ' empresa(s) em S.M/Pró-labore ficam fora do cálculo.' : '') }));
 
     // Ranking
     const maxTotal = r.ranking.length ? Math.max(1, ...r.ranking.map((x) => x.total)) : 1;
@@ -218,7 +222,7 @@
   }
 
   function empresaCompleta(e) {
-    return ETAPAS.every(({ k }) => e[k + '_status'] !== PENDENTE);
+    return !e.pro_labore && ETAPAS.every(({ k }) => e[k + '_status'] !== PENDENTE);
   }
 
   function passaFiltro(e) {
@@ -226,7 +230,8 @@
       const alvo = (e.nome + ' ' + (e.cnpj || '') + ' ' + (e.codigo || '')).toLowerCase();
       if (!alvo.includes(filtroBusca)) return false;
     }
-    if (filtroSituacao === 'pendentes' && empresaCompleta(e)) return false;
+    if (filtroSituacao === 'prolabore' && !e.pro_labore) return false;
+    if (filtroSituacao === 'pendentes' && (e.pro_labore || empresaCompleta(e))) return false;
     if (filtroSituacao === 'concluidas' && !empresaCompleta(e)) return false;
     if (filtroExecutor) {
       const alvo = filtroExecutor === '__sem__'
@@ -240,7 +245,9 @@
   function atualizarContador() {
     const concl = empresas.filter(empresaCompleta).length;
     const visiveis = empresas.filter(passaFiltro).length;
-    contador.textContent = visiveis + ' de ' + empresas.length + ' empresas na tela · ' + concl + ' com as três etapas resolvidas';
+    const fora = empresas.filter((e) => e.pro_labore).length;
+    contador.textContent = visiveis + ' de ' + empresas.length + ' empresas na tela · ' + concl + ' com as três etapas resolvidas'
+      + (fora ? ' · ' + fora + ' em S.M/Pró-labore (fora do cálculo)' : '');
   }
 
   function opcoesExecutor(select, atualId) {
@@ -259,22 +266,23 @@
 
     const caixa = el('input', { type: 'checkbox', className: 'etapa-check', 'aria-label': 'Concluído' });
     caixa.checked = status === FEITO;
-    caixa.disabled = status === NA;
+    caixa.disabled = status === NA || !!empresa.pro_labore;
 
     const btnNa = el('button', { type: 'button', className: 'btn-na' + (status === NA ? ' ativo' : ''), title: 'Não se aplica', text: 'N/A' });
 
     const select = el('select', { className: 'etapa-select', 'aria-label': 'Executor' });
     opcoesExecutor(select, empresa[k + '_executor_id']);
-    select.disabled = status === NA;
+    select.disabled = status === NA || !!empresa.pro_labore;
+    btnNa.disabled = !!empresa.pro_labore;
 
     function redesenharEstado() {
       const s = empresa[k + '_status'];
       td.className = 'etapa-cel' + (s === NA ? ' na' : '');
       caixa.checked = s === FEITO;
-      caixa.disabled = s === NA;
-      select.disabled = s === NA;
+      caixa.disabled = s === NA || !!empresa.pro_labore;
+      select.disabled = s === NA || !!empresa.pro_labore;
       btnNa.className = 'btn-na' + (s === NA ? ' ativo' : '');
-      tr.className = empresaCompleta(empresa) ? 'completa' : '';
+      tr.className = classeLinha(empresa);
     }
 
     caixa.addEventListener('change', async () => {
@@ -298,12 +306,26 @@
     return td;
   }
 
+  function classeLinha(e) {
+    return e.pro_labore ? 'prolabore' : (empresaCompleta(e) ? 'completa' : '');
+  }
+
   function linhaEmpresa(e) {
-    const tr = el('tr', { className: empresaCompleta(e) ? 'completa' : '' });
+    const tr = el('tr', { className: classeLinha(e) });
     const nomeTd = el('td', { className: 'col-empresa' }, [
       el('div', { className: 'empresa-nome', text: e.nome }),
       el('div', { className: 'texto-fraco', text: [e.codigo, e.cnpj].filter(Boolean).join(' · ') }),
     ]);
+    const caixaPl = el('input', { type: 'checkbox', 'aria-label': 'S.M/Pró-labore' });
+    caixaPl.checked = !!e.pro_labore;
+    caixaPl.addEventListener('change', async () => {
+      const ok = await salvarCampo(e, 'pro_labore', caixaPl.checked ? 1 : 0);
+      if (!ok) { caixaPl.checked = !!e.pro_labore; return; }
+      const nova = linhaEmpresa(e);
+      if (passaFiltro(e)) tr.replaceWith(nova); else tr.remove();
+      atualizarContador();
+    });
+    nomeTd.append(el('label', { className: 'pl-toggle', title: 'Marque se a empresa tem apenas S.M/Pró-labore: ela sai de todos os cálculos' }, [caixaPl, el('span', { text: 'S.M/Pró-labore' })]));
     if (ehGestor) {
       nomeTd.append(el('button', {
         type: 'button', className: 'btn-remover', title: 'Remover empresa', text: '×',
@@ -350,6 +372,7 @@
       el('option', { value: 'todas', text: 'Todas as empresas' }),
       el('option', { value: 'pendentes', text: 'Só com pendências' }),
       el('option', { value: 'concluidas', text: 'Só concluídas' }),
+      el('option', { value: 'prolabore', text: 'Só S.M/Pró-labore' }),
     ]);
     sit.addEventListener('change', () => { filtroSituacao = sit.value; renderLinhas(); });
 

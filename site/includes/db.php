@@ -166,6 +166,11 @@ function criarTabelasDecimo(PDO $pdo): void
             created_at DATETIME NOT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     ");
+
+    // Empresas marcadas como S.M/Pró-labore ficam fora de todos os cálculos.
+    if (!colunaExiste($pdo, 'decimo_empresa', 'pro_labore')) {
+        $pdo->exec("ALTER TABLE decimo_empresa ADD COLUMN pro_labore TINYINT NOT NULL DEFAULT 0");
+    }
 }
 
 function gerarId(): string
