@@ -11,6 +11,7 @@ $rotulos = ['GESTOR' => 'Gestor', 'CONSULTOR' => 'Consultor', 'OPERACIONAL' => '
     <img src="assets/img/logo.jpg" alt="Mecanismo DP" class="sidebar-logo" width="220">
 
     <nav class="sidebar-nav">
+      <a href="inicio.php">Início</a>
       <a href="dashboard.php">Calendário</a>
       <a href="controle13.php">Controle 13º</a>
       <a href="dashboard13.php">Dashboard 13º</a>

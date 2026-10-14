@@ -200,8 +200,8 @@ function criarDemanda(array $dados): array
 
 function atualizarStatusDemanda(string $id, string $status): void
 {
-    $stmt = getDB()->prepare("UPDATE demanda SET status = ? WHERE id = ?");
-    $stmt->execute([$status, $id]);
+    $stmt = getDB()->prepare("UPDATE demanda SET status = ?, concluida_em = ? WHERE id = ?");
+    $stmt->execute([$status, $status === 'CONCLUIDA' ? date('Y-m-d H:i:s') : null, $id]);
 }
 
 function buscarDemandaPorId(string $id): ?array

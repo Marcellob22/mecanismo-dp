@@ -3,7 +3,7 @@ require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/dados.php';
 
 if (usuarioLogado()) {
-    header('Location: dashboard.php');
+    header('Location: inicio.php');
     exit;
 }
 

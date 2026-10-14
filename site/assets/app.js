@@ -15,7 +15,7 @@
   let ano = hoje.getFullYear();
   let mes = hoje.getMonth();
   let diaSelecionado = toISODate(hoje);
-  let demandas = [], planejamentos = [], dailies = [];
+  let demandas = [], planejamentos = [], dailies = [], atividades = [];
   let corPorPlanejamento = new Map();
   let celulaFiltro = '';
 
@@ -51,6 +51,7 @@
       demandas = dados.demandas;
       planejamentos = dados.planejamentos;
       dailies = dados.dailies;
+      atividades = dados.atividades || [];
       recalcularCoresDosPlanejamentos();
     }
     render();
@@ -124,6 +125,13 @@
     const demandasPorDia = agruparPorDia(demandasFiltradas, 'data');
     const planejamentosPorDia = agruparPlanejamentosPorDia(planejamentosFiltrados);
     const dailiesPorDia = agruparPorDia(dailiesFiltradas, 'data');
+    const atividadesPorDia = new Map();
+    for (const at of atividades) {
+      const chaveAt = ((at.tipo === 'GRANDE' ? at.prazo : at.data) || '').slice(0, 10);
+      if (!chaveAt) continue;
+      if (!atividadesPorDia.has(chaveAt)) atividadesPorDia.set(chaveAt, []);
+      atividadesPorDia.get(chaveAt).push(at);
+    }
 
     const hojeISO = toISODate(hoje);
     const registradasHoje = new Set((dailiesPorDia.get(hojeISO) || []).map((d) => d.dupla_id));
@@ -181,6 +189,7 @@
       const itensDemanda = demandasPorDia.get(chave) || [];
       const itensPlanejamento = planejamentosPorDia.get(chave) || [];
       const itensDaily = dailiesPorDia.get(chave) || [];
+      const itensAtividade = atividadesPorDia.get(chave) || [];
       const ehHoje = chave === hojeISO;
 
       const marcadores = el('div', { class: 'marcadores' }, [
@@ -190,6 +199,10 @@
           style: 'background:' + DOURADO + ';',
         }, [])),
         itensDaily.length > 0 ? el('span', { class: 'bolinha', title: 'Daily realizada', style: 'background:#a78bfa;' }, []) : null,
+        ...itensAtividade.slice(0, 4).map((at) => el('span', {
+          class: 'bolinha ' + (at.tipo === 'GRANDE' ? 'atividade-grande' : 'atividade-dia') + (at.status === 'CONCLUIDA' ? ' concluida' : ''),
+          title: (at.tipo === 'GRANDE' ? 'Grande pendência: ' : 'Atividade: ') + at.titulo,
+        }, [])),
       ]);
 
       const faixas = el('div', { class: 'faixas-planejamento' }, itensPlanejamento.slice(0, 3).map((p) => {
@@ -227,17 +240,18 @@
       diaSelecionado,
       demandasPorDia.get(diaSelecionado) || [],
       planejamentosPorDia.get(diaSelecionado) || [],
-      dailiesPorDia.get(diaSelecionado) || []
+      dailiesPorDia.get(diaSelecionado) || [],
+      atividadesPorDia.get(diaSelecionado) || []
     ));
   }
 
-  function renderPainelDoDia(dia, itensDemanda, itensPlanejamento, itensDaily) {
+  function renderPainelDoDia(dia, itensDemanda, itensPlanejamento, itensDaily, itensAtividade) {
     const [a, m, d] = dia.split('-');
     const painel = el('div', { class: 'card painel-dia' }, [
       el('p', { class: 'titulo-dia font-display' }, [d + '/' + m + '/' + a]),
     ]);
 
-    if (itensDemanda.length === 0 && itensPlanejamento.length === 0 && itensDaily.length === 0) {
+    if (itensDemanda.length === 0 && itensPlanejamento.length === 0 && itensDaily.length === 0 && itensAtividade.length === 0) {
       painel.appendChild(el('p', { class: 'texto-fraco' }, ['Nenhum item para este dia.']));
       return painel;
     }
@@ -259,6 +273,24 @@
             el('span', { class: 'dupla-nome' }, [nomeDupla(dm.dupla_id)]),
           ]),
           select,
+        ]));
+      }
+    }
+
+    if (itensAtividade.length > 0) {
+      painel.appendChild(el('p', { class: 'secao-titulo mt-3' }, ['Minhas atividades']));
+      for (const at of itensAtividade) {
+        const feita = at.status === 'CONCLUIDA';
+        painel.appendChild(el('div', { class: 'item-lista' + (feita ? ' feita-cal' : '') }, [
+          el('div', { class: 'esquerda' }, [
+            el('span', { class: 'bolinha ' + (at.tipo === 'GRANDE' ? 'atividade-grande' : 'atividade-dia') }, []),
+            el('span', { class: 'titulo-cal' }, [at.titulo]),
+            el('span', { class: 'dupla-nome' }, [at.tipo === 'GRANDE' ? 'Grande pendência' : 'Atividade do dia']),
+          ]),
+          el('button', {
+            class: 'btn btn-outline btn-sm',
+            onclick: () => alternarAtividade(at),
+          }, [feita ? 'Desfazer' : 'Concluir']),
         ]));
       }
     }
@@ -303,6 +335,17 @@
     await apiFetch('api/demandas.php?id=' + encodeURIComponent(id), {
       method: 'PATCH',
       body: JSON.stringify({ status }),
+    });
+    carregar();
+  }
+
+  async function alternarAtividade(at) {
+    await apiFetch('api/inicio.php', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        origem: 'atividade', id: at.id, hoje: toISODate(new Date()),
+        status: at.status === 'CONCLUIDA' ? 'PENDENTE' : 'CONCLUIDA',
+      }),
     });
     carregar();
   }

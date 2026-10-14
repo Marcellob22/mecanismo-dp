@@ -9,7 +9,7 @@ if (!existeAlgumUsuario()) {
 }
 
 if (usuarioLogado()) {
-    header('Location: dashboard.php');
+    header('Location: inicio.php');
     exit;
 }
 
@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $erro = 'Usuário ou senha inválidos.';
         } else {
             fazerLogin($user);
-            header('Location: dashboard.php');
+            header('Location: inicio.php');
             exit;
         }
     }

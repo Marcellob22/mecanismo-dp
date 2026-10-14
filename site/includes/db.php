@@ -94,6 +94,7 @@ function criarTabelas(PDO $pdo): void
     ");
 
     criarTabelasDecimo($pdo);
+    criarTabelasAtividades($pdo);
     migrarColunasNovas($pdo);
 }
 
@@ -174,6 +175,32 @@ function criarTabelasDecimo(PDO $pdo): void
     // Time (equipe) responsável pela empresa, para filtrar e comparar andamento por time.
     if (!colunaExiste($pdo, 'decimo_empresa', 'equipe')) {
         $pdo->exec("ALTER TABLE decimo_empresa ADD COLUMN equipe VARCHAR(100) NULL");
+    }
+}
+
+// Atividades pessoais da página inicial (cada usuário vê só as suas).
+// tipo DIA: atividade do dia (usa a coluna data). tipo GRANDE: demanda grande (usa prazo).
+function criarTabelasAtividades(PDO $pdo): void
+{
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS atividade (
+            id VARCHAR(36) PRIMARY KEY,
+            usuario_id VARCHAR(36) NOT NULL,
+            titulo VARCHAR(255) NOT NULL,
+            tipo ENUM('DIA','GRANDE') NOT NULL DEFAULT 'DIA',
+            data DATE NULL,
+            prazo DATE NULL,
+            status ENUM('PENDENTE','CONCLUIDA') NOT NULL DEFAULT 'PENDENTE',
+            concluida_em DATETIME NULL,
+            created_at DATETIME NOT NULL,
+            INDEX idx_atividade_usuario (usuario_id, status),
+            INDEX idx_atividade_data (usuario_id, data)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+
+    // Data em que a demanda do Calendário foi concluída (para aparecer no dia certo na página inicial).
+    if (!colunaExiste($pdo, 'demanda', 'concluida_em')) {
+        $pdo->exec("ALTER TABLE demanda ADD COLUMN concluida_em DATETIME NULL");
     }
 }
 

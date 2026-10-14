@@ -6,5 +6,5 @@ if (!existeAlgumUsuario()) {
     header('Location: setup.php');
     exit;
 }
-header('Location: ' . (usuarioLogado() ? 'dashboard.php' : 'login.php'));
+header('Location: ' . (usuarioLogado() ? 'inicio.php' : 'login.php'));
 exit;

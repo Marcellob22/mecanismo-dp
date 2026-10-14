@@ -308,3 +308,50 @@ a { color: inherit; }
 .tag-equipe { display: inline-block; margin-top: 4px; margin-right: 6px; font-size: 10px; letter-spacing: .5px; text-transform: uppercase; color: var(--dourado-claro); border: 1px solid var(--borda); border-radius: 999px; padding: 1px 8px; }
 .time-linha { padding: 8px 0; border-bottom: 1px solid var(--borda); }
 .time-linha:last-child { border-bottom: none; }
+
+/* ---------- Página inicial ---------- */
+.nav-dia { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.nav-dia-texto { min-width: 220px; }
+.nav-dia-nome { font-size: 22px; color: var(--dourado-claro); line-height: 1.1; }
+.add-data { background: var(--carvao); border: 1px solid var(--borda); color: #fff; border-radius: 4px; padding: 6px 8px; font-size: 13px; font-family: inherit; color-scheme: dark; }
+
+.inicio-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+@media (max-width: 1000px) { .inicio-grid { grid-template-columns: 1fr; } }
+.bloco-inicio h2 { margin: 0; font-size: 18px; color: var(--dourado); }
+.bloco-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.contagem { font-size: 12px; color: var(--preto); background: var(--dourado); border-radius: 999px; padding: 1px 9px; font-weight: 700; }
+.bloco-inicio .vazio { padding: 14px 0; }
+
+.atividade { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--borda); }
+.item-corpo { flex: 1; min-width: 0; }
+.item-titulo { word-break: break-word; }
+.item-sub { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.atividade.feita .item-titulo { text-decoration: line-through; }
+.atividade.feita { opacity: .45; }
+.atividade.feita:hover { opacity: .8; }
+
+.check-btn {
+  flex: none; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--borda);
+  background: transparent; color: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0;
+}
+.check-btn:hover { border-color: var(--dourado); color: var(--dourado); }
+.check-btn.feito { background: var(--dourado); border-color: var(--dourado); color: var(--preto); }
+
+.tag-origem, .tag-acumulo { font-size: 10px; letter-spacing: .5px; text-transform: uppercase; border-radius: 999px; padding: 1px 8px; border: 1px solid var(--borda); color: rgba(255,255,255,.55); }
+.tag-acumulo { color: #f59e0b; border-color: #f59e0b66; }
+.prazo { font-size: 12px; color: rgba(255,255,255,.6); }
+.prazo.hoje { color: #f59e0b; font-weight: 600; }
+.prazo.atrasada { color: #ef4444; font-weight: 600; }
+
+.add-linha { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+.add-input { flex: 1; min-width: 0; background: var(--carvao); border: 1px solid var(--borda); color: #fff; border-radius: 4px; padding: 8px 10px; font-size: 13px; font-family: inherit; }
+.add-input:focus, .add-data:focus { outline: none; border-color: var(--dourado); }
+.add-grande { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.add-grande .add-linha { margin-top: 0; }
+
+/* atividades pessoais no Calendário */
+.bolinha.atividade-dia { background: #38bdf8; }
+.bolinha.atividade-grande { background: #f59e0b; border-radius: 2px; }
+.item-lista.feita-cal .titulo-cal { text-decoration: line-through; opacity: .5; }
+
+.erro-msg:empty { display: none; }
