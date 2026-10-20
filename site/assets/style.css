@@ -476,3 +476,33 @@ a { color: inherit; }
 .pagina-ferramenta { height: 100vh; height: 100dvh; padding: 14px 16px 14px 76px; }
 .ferramenta-frame { width: 100%; height: 100%; border: 1px solid var(--borda); border-radius: 12px; background: #0d0d0d; display: block; }
 @media (max-width: 640px) { .pagina-ferramenta { padding: 64px 8px 8px; } }
+
+/* Feriados no calendário */
+.cal-dia.feriado { background: rgba(239, 90, 100, .09); }
+.cal-dia.feriado .numero { color: #ff7a85; font-weight: 700; }
+.cal-dia.feriado.hoje .numero { color: var(--preto); }
+.cal-dia.facultativo { background: rgba(201, 162, 39, .06); }
+.cal-dia.facultativo .numero { color: var(--dourado-claro); }
+.cal-dia.facultativo.hoje .numero { color: var(--preto); }
+.cal-dia .rotulo-feriado {
+  font-size: 9px; line-height: 1.15; text-transform: uppercase; letter-spacing: .3px; font-weight: 600;
+  color: #ff7a85; text-align: right; max-width: 78%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word;
+}
+.cal-dia.facultativo .rotulo-feriado { color: var(--dourado-claro); opacity: .85; }
+@media (max-width: 760px) {
+  .cal-dia .rotulo-feriado { display: none; }
+  .cal-dia.feriado .numero::after, .cal-dia.facultativo .numero::after {
+    content: ''; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: currentColor; margin-left: 3px; vertical-align: middle;
+  }
+}
+.banner-feriado {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 4px 0 12px; padding: 10px 14px;
+  border-radius: 10px; border: 1px solid rgba(239, 90, 100, .45); background: rgba(239, 90, 100, .1);
+}
+.banner-feriado.facultativo { border-color: rgba(201, 162, 39, .45); background: rgba(201, 162, 39, .08); }
+.banner-feriado-tag {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+  background: #ff7a85; color: var(--preto);
+}
+.banner-feriado.facultativo .banner-feriado-tag { background: var(--dourado); }
+.banner-feriado-nome { font-weight: 600; color: var(--texto); }

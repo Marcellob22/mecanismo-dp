@@ -29,6 +29,54 @@
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
+  // ---------- Feriados nacionais ----------
+  const FERIADOS_FIXOS = [
+    ['01-01', 'Confraternização Universal'],
+    ['04-21', 'Tiradentes'],
+    ['05-01', 'Dia do Trabalho'],
+    ['09-07', 'Independência do Brasil'],
+    ['10-12', 'Nossa Senhora Aparecida'],
+    ['11-02', 'Finados'],
+    ['11-15', 'Proclamação da República'],
+    ['11-20', 'Dia da Consciência Negra'],
+    ['12-25', 'Natal'],
+  ];
+  const cacheFeriados = new Map();
+
+  function calcularPascoa(a) {
+    // Algoritmo de Meeus/Jones/Butcher
+    const A = a % 19, B = Math.floor(a / 100), C = a % 100;
+    const D = Math.floor(B / 4), E = B % 4, F = Math.floor((B + 8) / 25);
+    const G = Math.floor((B - F + 1) / 3), H = (19 * A + B - D - G + 15) % 30;
+    const I = Math.floor(C / 4), K = C % 4, L = (32 + 2 * E + 2 * I - H - K) % 7;
+    const M = Math.floor((A + 11 * H + 22 * L) / 451);
+    const mesP = Math.floor((H + L - 7 * M + 114) / 31);
+    const diaP = ((H + L - 7 * M + 114) % 31) + 1;
+    return new Date(a, mesP - 1, diaP);
+  }
+
+  function somarDias(d, n) {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  }
+
+  // Mapa 'YYYY-MM-DD' -> { nome, tipo: 'feriado' | 'facultativo' }
+  function feriadosDoAno(a) {
+    if (cacheFeriados.has(a)) return cacheFeriados.get(a);
+    const mapa = new Map();
+    for (const [md, nome] of FERIADOS_FIXOS) mapa.set(a + '-' + md, { nome, tipo: 'feriado' });
+    const pascoa = calcularPascoa(a);
+    mapa.set(toISODate(somarDias(pascoa, -2)), { nome: 'Sexta-feira Santa', tipo: 'feriado' });
+    mapa.set(toISODate(somarDias(pascoa, -48)), { nome: 'Carnaval', tipo: 'facultativo' });
+    mapa.set(toISODate(somarDias(pascoa, -47)), { nome: 'Carnaval', tipo: 'facultativo' });
+    mapa.set(toISODate(somarDias(pascoa, 60)), { nome: 'Corpus Christi', tipo: 'facultativo' });
+    cacheFeriados.set(a, mapa);
+    return mapa;
+  }
+
+  function feriadoDaData(chave) {
+    return feriadosDoAno(Number(chave.slice(0, 4))).get(chave) || null;
+  }
+
   function nomeDupla(id) {
     const d = duplas.find((x) => x.id === id);
     return d ? d.nome : '—';
@@ -221,11 +269,21 @@
 
       const numero = el('span', { class: 'numero' }, [String(dia.getDate())]);
 
+      const feriado = feriadoDaData(chave);
+      const topoFilhos = [numero];
+      if (feriado) {
+        topoFilhos.push(el('span', {
+          class: 'rotulo-feriado',
+          title: (feriado.tipo === 'feriado' ? 'Feriado nacional: ' : 'Ponto facultativo: ') + feriado.nome,
+        }, [feriado.nome]));
+      }
+
       const celula = el('button', {
-        class: 'cal-dia' + (doMesAtual ? '' : ' fora-do-mes') + (chave === diaSelecionado ? ' selecionado' : '') + (ehHoje ? ' hoje' : ''),
+        class: 'cal-dia' + (doMesAtual ? '' : ' fora-do-mes') + (chave === diaSelecionado ? ' selecionado' : '') + (ehHoje ? ' hoje' : '')
+          + (feriado ? ' ' + feriado.tipo : ''),
         onclick: () => { diaSelecionado = chave; render(); },
       }, [
-        el('div', { class: 'topo-dia' }, [numero]),
+        el('div', { class: 'topo-dia' }, topoFilhos),
         faixas,
         marcadores,
       ]);
@@ -250,6 +308,14 @@
     const painel = el('div', { class: 'card painel-dia' }, [
       el('p', { class: 'titulo-dia font-display' }, [d + '/' + m + '/' + a]),
     ]);
+
+    const feriadoDia = feriadoDaData(dia);
+    if (feriadoDia) {
+      painel.appendChild(el('div', { class: 'banner-feriado ' + feriadoDia.tipo }, [
+        el('span', { class: 'banner-feriado-tag' }, [feriadoDia.tipo === 'feriado' ? 'Feriado nacional' : 'Ponto facultativo']),
+        el('span', { class: 'banner-feriado-nome' }, [feriadoDia.nome]),
+      ]));
+    }
 
     if (itensDemanda.length === 0 && itensPlanejamento.length === 0 && itensDaily.length === 0 && itensAtividade.length === 0) {
       painel.appendChild(el('p', { class: 'texto-fraco' }, ['Nenhum item para este dia.']));
