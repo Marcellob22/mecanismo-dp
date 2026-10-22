@@ -58,7 +58,7 @@ if ($metodo === 'PATCH') {
 
     $dados = corpoJson();
     $campos = [];
-    if (!empty($dados['nome'])) $campos['nome'] = $dados['nome'];
+    if (!empty(trim($dados['nome'] ?? ''))) $campos['nome'] = trim($dados['nome']);
     if (!empty($dados['role'])) $campos['role'] = $dados['role'];
     if (array_key_exists('duplaId', $dados)) $campos['dupla_id'] = $dados['duplaId'] ?: null;
     if (array_key_exists('ativo', $dados)) $campos['ativo'] = $dados['ativo'] ? 1 : 0;

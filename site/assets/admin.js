@@ -302,18 +302,23 @@
     });
 
     // Edição de dados cadastrais (email/CPF)
+    const inputNomeUsuario = el('input', { type: 'text', placeholder: 'Nome completo', value: u.nome || '', style: 'display:none;' }, []);
     const inputEmail = el('input', { type: 'email', placeholder: 'E-mail', value: u.email || '', style: 'display:none;' }, []);
     const inputCpf = el('input', { type: 'text', placeholder: 'CPF', value: formatarCpf(u.cpf), style: 'display:none;' }, []);
     const btnEditarDados = el('button', { class: 'btn btn-sm btn-ghost' }, ['Editar dados cadastrais']);
     const btnConfirmarDados = el('button', { class: 'btn btn-sm btn-outline', style: 'display:none;' }, ['Salvar']);
     btnEditarDados.addEventListener('click', () => {
       const mostrar = inputEmail.style.display === 'none';
+      inputNomeUsuario.style.display = mostrar ? 'inline-block' : 'none';
       inputEmail.style.display = mostrar ? 'inline-block' : 'none';
       inputCpf.style.display = mostrar ? 'inline-block' : 'none';
       btnConfirmarDados.style.display = mostrar ? 'inline-block' : 'none';
     });
     btnConfirmarDados.addEventListener('click', async () => {
-      await atualizarUsuario(u.id, { email: inputEmail.value, cpf: inputCpf.value });
+      const campos = { email: inputEmail.value, cpf: inputCpf.value };
+      const novoNome = inputNomeUsuario.value.trim();
+      if (novoNome) campos.nome = novoNome;
+      await atualizarUsuario(u.id, campos);
     });
 
     return el('div', { class: 'card', style: 'margin-bottom:12px;' }, [
@@ -326,7 +331,7 @@
         ]),
         el('div', { class: 'usuario-controles' }, [selectRole, selectDupla, btnAtivo]),
       ]),
-      el('div', { class: 'usuario-controles mt-3' }, [btnSenha, inputSenha, btnConfirmarSenha, btnEditarDados, inputEmail, inputCpf, btnConfirmarDados]),
+      el('div', { class: 'usuario-controles mt-3' }, [btnSenha, inputSenha, btnConfirmarSenha, btnEditarDados, inputNomeUsuario, inputEmail, inputCpf, btnConfirmarDados]),
     ]);
   }
 
