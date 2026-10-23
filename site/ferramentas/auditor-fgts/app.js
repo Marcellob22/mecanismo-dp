@@ -553,8 +553,10 @@
         }
 
         // Afastamento / Desligamento / Movimentação
+        // "MOVIMENTACAO DA CONTA NO PERIODO" e o titulo da lista de creditos/saques do extrato
+        // para fins rescisorios: as datas abaixo dele sao lancamentos, nunca a saida do vinculo.
         if (upper.includes("MOVIMENTACAO") || upper.includes("AFASTAMENTO") || upper.includes("DATA DE AFAST.") || upper.includes("DTA. AFAST")) {
-          if (!upper.includes("115-DEPOSITO") && !upper.includes("115 - DEPOSITO")) {
+          if (!upper.includes("115-DEPOSITO") && !upper.includes("115 - DEPOSITO") && !upper.includes("MOVIMENTACAO DA CONTA")) {
             let allDates = line.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
             if (!allDates || allDates.length === 0) {
               for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
