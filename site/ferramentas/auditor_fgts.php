@@ -18,10 +18,10 @@ header("Cache-Control: no-store");
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 
   <!-- Estilos do app e bibliotecas hospedadas no próprio site (sem CDN) -->
-  <link rel="stylesheet" href="auditor-fgts/style.css">
+  <link rel="stylesheet" href="auditor-fgts/style.css?v=<?= @filemtime(__DIR__ . "/auditor-fgts/style.css") ?: 1 ?>">
 
   <!-- PDF.js para leitura direta de PDFs no navegador -->
-  <script src="auditor-fgts/pdf.min.js"></script>
+  <script src="auditor-fgts/pdf.min.js?v=<?= @filemtime(__DIR__ . "/auditor-fgts/pdf.min.js") ?: 1 ?>"></script>
   <script>
     if (window.pdfjsLib) {
       window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'auditor-fgts/pdf.worker.min.js';
@@ -29,15 +29,15 @@ header("Cache-Control: no-store");
   </script>
 
   <!-- ExcelJS e SheetJS para planilhas Excel -->
-  <script src="auditor-fgts/exceljs.min.js"></script>
-  <script src="auditor-fgts/xlsx.full.min.js"></script>
+  <script src="auditor-fgts/exceljs.min.js?v=<?= @filemtime(__DIR__ . "/auditor-fgts/exceljs.min.js") ?: 1 ?>"></script>
+  <script src="auditor-fgts/xlsx.full.min.js?v=<?= @filemtime(__DIR__ . "/auditor-fgts/xlsx.full.min.js") ?: 1 ?>"></script>
 
   <!-- jsPDF e jsPDF-AutoTable para laudos em PDF -->
-  <script src="auditor-fgts/jspdf.umd.min.js"></script>
-  <script src="auditor-fgts/jspdf.plugin.autotable.min.js"></script>
+  <script src="auditor-fgts/jspdf.umd.min.js?v=<?= @filemtime(__DIR__ . "/auditor-fgts/jspdf.umd.min.js") ?: 1 ?>"></script>
+  <script src="auditor-fgts/jspdf.plugin.autotable.min.js?v=<?= @filemtime(__DIR__ . "/auditor-fgts/jspdf.plugin.autotable.min.js") ?: 1 ?>"></script>
 
   <!-- Ícones Lucide -->
-  <script src="auditor-fgts/lucide.min.js"></script>
+  <script src="auditor-fgts/lucide.min.js?v=<?= @filemtime(__DIR__ . "/auditor-fgts/lucide.min.js") ?: 1 ?>"></script>
 </head>
 <body>
 
@@ -582,6 +582,6 @@ header("Cache-Control: no-store");
   </footer>
 
   <!-- Lógica Principal da Aplicação (Vanilla JS) -->
-  <script src="auditor-fgts/app.js"></script>
+  <script src="auditor-fgts/app.js?v=<?= @filemtime(__DIR__ . "/auditor-fgts/app.js") ?: 1 ?>"></script>
 </body>
 </html>
